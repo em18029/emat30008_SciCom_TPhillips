@@ -20,7 +20,7 @@ def ode_to_solve(t, vals, a, b, d):
 def gen_data(ode_to_solve,T):
     args = [1,0.12,0.1]
     t_data= (0,T)
-    x0 = [0.5,0.5]
+    x0 = [1,0.5]
     ode_data = solve_ivp(ode_to_solve,t_data, x0, max_step=1e-2, args=args)
 
     t_data = np.transpose(ode_data.t)
@@ -29,24 +29,20 @@ def gen_data(ode_to_solve,T):
 
 def isolate_orbit(ode_data, t_data):
     x_data = ode_data[:, 0]
-    print(x_data)
     y_data = ode_data[:, 1]
-    print(y_data)
-    maximums = argrelextrema(x_data, np.greater)[0]
-    print(maximums)
-    print(type(maximums))
-    prev_val = True
+    # plt.plot(t_data,x_data)
+    # plt.show()
+    extrema = argrelextrema(x_data, np.greater)[0]
+    print(extrema)
+    prev_val = False
     prev_t = 0
-    for i in maximums:
+
+    for i in extrema:
         if prev_val:
-
-            print('x data',x_data[i])
             print('prev val',prev_val)
-            if math.isclose(x_data[i], prev_val, abs_tol=1e-4):
-                period = t_data[i] - prev_t
-                print('period',period)
-                return x_data[i], y_data[i], period
-
+            #if math.isclose(x_data[i], prev_val, abs_tol=1e-4):
+            period = t_data[i] - prev_t
+            return x_data[i], y_data[i], period
         prev_val = x_data[i]
         prev_t = t_data[i]
     return
@@ -83,10 +79,12 @@ def shooting(ode, u0, args):
 
 args = np.array([1, 0.2, 0.1])
 
-ode_data,t_data = gen_data(ode_to_solve,50)
-
+ode_data,t_data = gen_data(ode_to_solve,100)
 x,y,period = isolate_orbit(ode_data, t_data)
+
 u0=[x,y,period]
+print('Initial starting conditions',u0)
 print(shooting(ode_to_solve, u0, args))
+
 
 
