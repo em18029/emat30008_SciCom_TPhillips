@@ -3,12 +3,11 @@ import math
 import matplotlib.pyplot as plt
 from scipy.signal import argrelextrema
 from scipy.integrate import solve_ivp
-from scipy.integrate import odeint
 from scipy.optimize import fsolve
-from odes import odes
+from odes import pred_prey
 
 
-class numerical_shooting:
+class numericalShooting:
     def __init__(self, ode, u0, args):
         self.ode = ode
         self.ode_data = None
@@ -16,34 +15,45 @@ class numerical_shooting:
         self.u0 = u0
         self.args = args
 
-    def gen_data(self, args, T):
+    def gen_data(self, args):
         '''
-        inputs: ODE to solve,args,T
-        '''
-        t_data= (0,T)
-        x0 = [1,0.5]
-        ode_data = solve_ivp(self.ode, t_data, x0, max_step=1e-2, args=args)
+        A function that solves a specified ODE using fsolve and returns the relevant ODE data and time points.
 
+        Parameters
+        ----------
+        self: class variable
+        args: list of specified parameters relevant to the ODE being solved in the numericalShooting class
+
+        Returns
+        -------
+        Update to ode_data and t_data in the numericalShooting class
+        '''
+        x0 = self.u0[:-1]
+        T = self.u0[-1]
+        t_data = (0, T)
+        ode_data = solve_ivp(self.ode, t_data, x0, max_step=1e-2, args=args)
         self.ode_data = np.transpose(ode_data.y)
         self.t_data = np.transpose(ode_data.t)
 
     def isolate_orbit(self):
         '''
-        inputs: ODE data,t_Data
+        A function that isolates the orbit of the ODE, finding the period with corresponding x and y points
+
+        Returns
+        -------
+        An update to u0 where x_data and y_data are boundary values found and and an update on period.
         '''
         x_data = self.ode_data[:, 0]
         y_data = self.ode_data[:, 1]
         # plt.plot(t_data,x_data)
         # plt.show()
         extrema = argrelextrema(x_data, np.greater)[0]
-        print(extrema)
         prev_val = False
         prev_t = 0
 
         for i in extrema:
             if prev_val:
-                print('prev val',prev_val)
-                #if math.isclose(x_data[i], prev_val, abs_tol=1e-4):
+                # if math.isclose(x_data[i], prev_val, abs_tol=1e-4):
                 period = self.t_data[i] - prev_t
                 self.u0 = [x_data[i], y_data[i], period]
                 return
@@ -53,7 +63,10 @@ class numerical_shooting:
 
     def shooting_conditions(self, u0, ode, args):
         '''
-        inputs: ODE,U0,args
+        A function which utilises scipy's solve_ivp to find the starting
+
+
+
         '''
         x0 = u0[:-1]
         t0 = u0[-1]
@@ -62,7 +75,6 @@ class numerical_shooting:
         t_conds = np.asarray(ode(t0, x0, *args)[0])
         g_conds = np.concatenate((x_conds, t_conds), axis=None)
         return g_conds
-
 
     def shooting(self):
         """"
@@ -83,23 +95,25 @@ class numerical_shooting:
         final = fsolve(self.shooting_conditions, self.u0, args=(self.ode, self.args))
         return final
 
-args = np.array([1, 0.2, 0.1])
-u0 = [1,0.5,100]
-nS = numerical_shooting(odes.pred_prey,u0,args)
+    def main( ode, u0, args):
+        nS = numericalShooting(ode, u0, args)
+        nS.gen_data(args)
+        nS.isolate_orbit()
+        print('Initial starting conditions', nS.u0)
+        print('Initial limit conditions', nS.shooting())
+
+        return nS.shooting()
 
 
-nS.gen_data(args, 100)
-nS.isolate_orbit()
+if __name__ == '__main__':
+    '''
+    Predator Prey equations init conditions
+    '''
+    args = np.array([1, 0.2, 0.1])
+    u0 = [1, 0.5, 100]
+    nS = numericalShooting(pred_prey, u0, args)
 
-print('Initial starting conditions', nS.u0)
-print(nS.shooting())
-
-#ode_data,t_data = gen_data(odes.pred_prey, args, 100)
-#x,y,period = isolate_orbit(ode_data, t_data)
-
-# u0=[x,y,period]
-# print('Initial starting conditions',u0)
-# print(shooting(ode_to_solve, u0, args))
-
-
-
+    nS.gen_data(args)
+    nS.isolate_orbit()
+    print('Initial starting conditions', nS.u0)
+    print('Initial limit conditions', nS.shooting())
