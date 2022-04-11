@@ -18,7 +18,7 @@ L = 1.0  # length of spatial domain
 T = 0.5  # total time to solve for
 
 # Set numerical parameters
-mx = 30  # number of gridpoints in space
+mx = 10  # number of gridpoints in space
 mt = 1000  # number of gridpoints in time`
 
 x = np.linspace(0, L, mx + 1)  # mesh points in space
@@ -47,27 +47,22 @@ def u_exact(x, t):
 
 def tridiag_mat():
     # A function generating a tridiagonal (m-1) x (m-1) matrix
-    return np.eye(mx + 1, mx + 1, k=-1) * lmbda + np.eye(mx + 1, mx + 1) * (1 - 2 * lmbda) + np.eye(mx + 1, mx + 1,k=1) * lmbda
-
-
-
-def u_j_mat():
-    return np.zeros((mx +1, mx +1))
+    return np.eye(mx + 1, mx + 1, k=-1) * lmbda + np.eye(mx + 1, mx + 1) * (1 - 2 * lmbda) + np.eye(mx + 1, mx + 1, k=1) * lmbda
 
 
 # Set initial conditions
-u_jp = u_j_mat()
-u_jp[:, 0] = u_i(x).T
-print(u_i(x).T)
-for i in range(1, mx + 1):
-    u_jp[:, i] = np.matmul(tridiag_mat(), u_jp[:, i - 1])
+u_j = u_i(x).T
 
-#set boundary conditions
-u_jp[:, 0] = 0
-u_jp[:, -mx] = 0
-print(u_jp)
+for i in range(1, mt + 1):
+    u_j1 = np.matmul(tridiag_mat(), u_j)
+    # set boundary conditions
+    u_j1[ 0] = 0
+    u_j1[mx] = 0
+    u_j[:] = u_j1[:]
 
-pl.plot(x, u_jp, 'ro', label='num')
+
+print(u_j)
+pl.plot(x, u_j, 'ro', label='num')
 xx = np.linspace(0, L, 250)
 pl.plot(xx, u_exact(xx, T), 'b-', label='exact')
 pl.xlabel('x')
