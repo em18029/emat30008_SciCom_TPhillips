@@ -94,10 +94,10 @@ if __name__ == '__main__':
     # Set up the solution variables
     u_j = np.sin(pi * x / L).T  # u at current time step
 
-    fE = crankNicholson(u_j, mx, lmbda, mt)
-    fE.solve()
+    solver = forwardEuler(u_j, mx, lmbda, mt)
+    solver.solve()
 
-    pl.plot(x, u_j, 'ro', label='num')
+    pl.plot(x, solver.u_j, 'ro', label='num')
     xx = np.linspace(0, L, 250)
     # pl.plot(xx, u_exact(xx, T), 'b-', label='exact')
     pl.xlabel('x')
