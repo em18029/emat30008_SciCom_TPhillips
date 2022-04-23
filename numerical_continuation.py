@@ -1,67 +1,81 @@
 import numpy as np
-import math
 import matplotlib.pyplot as plt
-import scipy
 from scipy.signal import argrelextrema
 from scipy.integrate import solve_ivp
 from scipy.optimize import fsolve
 from odes import odes
-from shooting import numericalShooting as shooting
+from shooting import numericalShooting
 
 
-def shooting_continuation(par0, vary_par, par_range, u0, myode, tol):
-    for i in par_range:
-        par0[vary_par] = i
-        u01 = shooting.main(myode, u0, par0)
-        if np.allclose(u01, u0, atol = tol):
-            print('Parameters converged :',u01)
-            return u0
-        u0 = u01
-    return u0
+def natural_continuation(max_steps, par0, vary_par, myode, step_size, u0):
+    n = 0
+    vary_par_h = []
+    sol = []
+    while n < max_steps:
+        n = n + 1
+        par0[vary_par] = par0[vary_par] + step_size
+        u0 = numericalShooting.main_loop(myode, u0, par0)
+        # print(par0)
+        # print(u0)
+        # print(' ')
+        # save solution and alpha
+        sol = np.concatenate((sol,u0),axis=0)
+        vary_par_h.append(par0[vary_par])
+    return sol, vary_par_h
 
 
-def notdiscretisation_continuation(discretisation, solver, u0, par0, par_range, vary_par, tol):
-    for i in par_range:
-        par0[vary_par] = i
-        u01 = solver(discretisation, u0)
-        if np.allclose(u01, u0, atol = tol):
-            print('Parameters converged :',u01)
-            return u0
-        u0 = u01
-    return u0
+def pseudo_continuation():
+    return
 
 
-def numerical_continuation(
+def plot_sols(sol,par_hist):
+    plt.subplot(1, 2, 1)
+    x_data = sol[:,0]
+    y_data = sol[:,1]
+    plt.plot(par_hist, x_data, 'r-', label='a')
+    plt.grid()
+    plt.legend(loc='best')
+    plt.xlabel('Varied Parameter')
+    plt.ylabel('x')
+    plt.subplot(1, 2, 2)
+    plt.plot(par_hist, y_data, 'b-', label='b')
+    plt.grid()
+    plt.legend(loc='best')
+    plt.xlabel('Varied Parameter')
+    plt.ylabel('x')
+    plt.show()
+
+def continuation(
         myode,  # the ODE to use
         u0,  # the initial state
         par0,  # the initial parameters (args)
         vary_par,  # the parameter to vary
         step_size,  # the size of the steps to take
         max_steps,  # the number of steps to take
-        var_par_end,  # the final varying parameter value
         discretisation,  # the discretisation to use
         solver,  # the solver to use
         tol  # tolerance for difference between converging parameters
 ):
-    # Range for parameter to be varied upon
-    par_range = np.arange(par0[vary_par], var_par_end + step_size, step_size)
+    if discretisation == "natural":
+        sol, par_hist = natural_continuation(max_steps, par0, vary_par, myode, step_size, u0)
+        sol = sol.reshape(max_steps, 3)
+        print(sol)
+        print(par_hist)
 
-    if discretisation == shooting:
-        u0 = shooting_continuation(par0, vary_par, par_range, u0, myode, tol)
-    else:
-        u0 = notdiscretisation_continuation(discretisation, solver, u0, par0, par_range, vary_par, tol)
-    return
+    if discretisation == "pseudo":
+        sol, par_hist = pseudo_continuation()
+
+    plot_sols(sol,par_hist)
 
 
-numerical_continuation(
+continuation(
     myode=odes.hopf_bifurcation,  # the ODE to use
     u0=[1.5, 0, 20],  # the initial state
-    par0=[1, 0],  # the initial parameters (args)
-    vary_par=1,  # the parameter to vary
-    step_size=0.5,  # the size of the steps to take
-    max_steps=None,  # the number of steps to take
-    var_par_end=2,  # the final varying parameter value
-    discretisation=shooting,  # the discretisation to use
-    solver=scipy.optimize.fsolve,  # the solver to use
+    par0=[0, -1],  # the initial parameters (args)
+    vary_par=0,  # the parameter to vary
+    step_size=0.2,  # the size of the steps to take
+    max_steps=10,  # the final varying parameter value
+    discretisation="natural",  # the discretisation to use
+    solver=None,  # the solver to use
     tol=1e-6
 )
