@@ -19,19 +19,36 @@ def natural_continuation(max_steps, par0, vary_par, myode, step_size, u0):
         # print(u0)
         # print(' ')
         # save solution and alpha
-        sol = np.concatenate((sol,u0),axis=0)
+        sol = np.concatenate((sol, u0), axis=0)
         vary_par_h.append(par0[vary_par])
     return sol, vary_par_h
 
 
-def pseudo_continuation():
-    return
+def pseudo_continuation(max_steps, par0, vary_par, myode, step_size, u0):
+    par1 = par0
+    par1[vary_par] = par1[vary_par] + step_size
+
+    # par1 = int(par1)
+    u1 = numericalShooting.main_loop(myode, u0, par1)
+
+    sec_alpha  = par1-par0
+    sec_x = u1[0]-u0[0]; sec_y = u1[1]-u0[1]; sec_p = u1[-1]-u0[-1]
 
 
-def plot_sols(sol,par_hist):
+
+
+
+    print(u1)
+
+
+
+    return u1, par1 # sol, vary_par_h
+
+
+def plot_sols(sol, par_hist):
     plt.subplot(1, 2, 1)
-    x_data = sol[:,0]
-    y_data = sol[:,1]
+    x_data = sol[:, 0]
+    y_data = sol[:, 1]
     plt.plot(par_hist, x_data, 'r-', label='a')
     plt.grid()
     plt.legend(loc='best')
@@ -45,6 +62,7 @@ def plot_sols(sol,par_hist):
     plt.ylabel('x')
     plt.show()
 
+
 def continuation(
         myode,  # the ODE to use
         u0,  # the initial state
@@ -56,16 +74,23 @@ def continuation(
         solver,  # the solver to use
         tol  # tolerance for difference between converging parameters
 ):
+
+
     if discretisation == "natural":
         sol, par_hist = natural_continuation(max_steps, par0, vary_par, myode, step_size, u0)
         sol = sol.reshape(max_steps, 3)
         print(sol)
         print(par_hist)
+        plot_sols(sol, par_hist)
 
-    if discretisation == "pseudo":
-        sol, par_hist = pseudo_continuation()
+    elif discretisation == "pseudo":
+        sol, par_hist = pseudo_continuation(max_steps, par0, vary_par, myode, step_size, u0)
 
-    plot_sols(sol,par_hist)
+    else:
+        # adding lambda x: x... i.e. option for no limit cycle
+        return
+
+
 
 
 continuation(
@@ -75,7 +100,7 @@ continuation(
     vary_par=0,  # the parameter to vary
     step_size=0.2,  # the size of the steps to take
     max_steps=10,  # the final varying parameter value
-    discretisation="natural",  # the discretisation to use
+    discretisation="pseudo",  # the discretisation to use
     solver=None,  # the solver to use
     tol=1e-6
 )
