@@ -1,7 +1,7 @@
 import numpy as np
 import pylab as pl
 from math import pi
-from scipy.optimize import fsolve
+from PDE_solver_schemes import forwardEuler
 
 '''
 simple forward Euler solver for the 1D heat equation
@@ -52,7 +52,6 @@ def tridiag_mat():
 
 # Set initial conditions
 u_j = u_i(x).T
-
 for i in range(1, mt + 1):
     u_j1 = np.matmul(tridiag_mat(), u_j)
     # set boundary conditions

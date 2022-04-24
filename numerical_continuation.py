@@ -12,7 +12,7 @@ def natural_continuation(max_steps, par0, vary_par, myode, step_size, u0):
     vary_par_h = []
     sol = []
     while n < max_steps:
-        n = n + 1
+        n += 1
         par0[vary_par] = par0[vary_par] + step_size
         u0 = numericalShooting.main_loop(myode, u0, par0)
         # print(par0)
@@ -31,18 +31,27 @@ def pseudo_continuation(max_steps, par0, vary_par, myode, step_size, u0):
     # par1 = int(par1)
     u1 = numericalShooting.main_loop(myode, u0, par1)
 
-    sec_alpha  = par1-par0
-    sec_x = u1[0]-u0[0]; sec_y = u1[1]-u0[1]; sec_p = u1[-1]-u0[-1]
+    state_sec = u1 - u0
+    par_sec = par1[vary_par] - par0[vary_par]
 
 
 
 
+    n = 0
+    while n < max_steps:
+        n += 1
+        u0 = u1
+        par0 = par1
+        approx_u0 = u0 + state_sec
+        approx_par = par0[vary_par]+par_sec
 
-    print(u1)
+        pseudo = np.dot(u0 - approx_u0, state_sec) + np.dot(par_sec - approx_par,par_sec)
+        print(pseudo)
 
+        nS = numericalShooting(myode, u0, par0)
+        g_conds = np.concatenate((nS.shooting_conditions(u0, myode, par0), pseudo), axis=None)
 
-
-    return u1, par1 # sol, vary_par_h
+    return u1, par1  # sol, vary_par_h
 
 
 def plot_sols(sol, par_hist):
@@ -74,8 +83,6 @@ def continuation(
         solver,  # the solver to use
         tol  # tolerance for difference between converging parameters
 ):
-
-
     if discretisation == "natural":
         sol, par_hist = natural_continuation(max_steps, par0, vary_par, myode, step_size, u0)
         sol = sol.reshape(max_steps, 3)
@@ -89,8 +96,6 @@ def continuation(
     else:
         # adding lambda x: x... i.e. option for no limit cycle
         return
-
-
 
 
 continuation(
