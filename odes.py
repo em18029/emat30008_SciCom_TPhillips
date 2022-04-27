@@ -26,13 +26,14 @@ def pred_prey(t, vals, a, b, d):
     x_array = np.array([x * (1 - x) - (a * x * y) / (d + x), b * y * (1 - (y / x))])
     return x_array
 
-def hopf_bifurcation(t, vals, beta, sigma):
+
+def hopf_bifurcation(t, vals, beta):
     """
     x_array: array containing system of odes
     """
     #beta,sigma = args[0],args[1]
     x, y = vals[0], vals[1]
-    x_array = np.array([beta * x - y + sigma * x * (x ** 2 + y ** 2), x + beta * y + sigma * y * (x ** 2 + y ** 2)])
+    x_array = np.array([beta * x - y + -x * (x ** 2 + y ** 2), x + beta * y + -y * (x ** 2 + y ** 2)])
     return x_array
 
 def hbf_analytical(vals):
