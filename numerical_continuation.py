@@ -74,7 +74,6 @@ def pseudo_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
     sol = np.vstack((sol, A))
 
     # calculate secants
-    print('Calculating secants')
     # -----------------------
     p1 = par1[vary_par]
     p0 = par0[vary_par]
@@ -89,15 +88,17 @@ def pseudo_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
     # -----------------------
 
     # begin while loop
-    while par[vary_par] < p[1]:
+    while par[vary_par] < p[1] :
         input = np.append(u1, par)
         A = fsolve(lambda x: pseudo_conds(myode, x, state_sec, par_sec, pred_state, pred_par, args=par), input)
+
+        if A[-1:-1] > p[1]:
+            return sol
+
         sol = np.vstack((sol, A))
-        print(A)
         p0, u0, u1, p1 = p1, u1, A[:-1], A[-1] # Setting up for next time step
 
         # Calculating secants
-
         state_sec = np.array(u1) - np.array(u0)
         par_sec = p1 - p0
 
@@ -147,6 +148,7 @@ def continuation(
             print(sol)
     elif discretisation == 'pseudo':
         sol = np.array(pseudo_continuation(p, par0, vary_par, myode, step_size, u0, limit_cycle))
+        print(sol)
 
 
 continuation(
