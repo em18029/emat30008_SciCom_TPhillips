@@ -85,10 +85,7 @@ def pseudo_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
     pred_par = p1 + par_sec
     par[vary_par] = p1
 
-    # -----------------------
-
-    # begin while loop
-    while par[vary_par] < p[1] :
+    while par[vary_par] < p[1] and p[0] < par[vary_par]:
         input = np.append(u1, par)
         A = fsolve(lambda x: pseudo_conds(myode, x, state_sec, par_sec, pred_state, pred_par, args=par), input)
 
@@ -106,7 +103,6 @@ def pseudo_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
         pred_state = u1 + state_sec
         pred_par = p1 + par_sec
         par[vary_par] = p1
-
     return sol
 
 
