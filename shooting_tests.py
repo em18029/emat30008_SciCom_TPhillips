@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 from shooting import numericalShooting
 from odes import odes
+import math
 
 
 class MyTestCase(unittest.TestCase):
@@ -28,7 +29,20 @@ class MyTestCase(unittest.TestCase):
     def test_shooting_conditions(self):
         self.assertIsNotNone(final,'Shooting conditions outputted')
 
-    #def test
+    # def test_hbf_annalytical(self):
+    #     '''
+    #         Hof-Bifurcation equtions
+    #         '''
+    #     args = np.array([0.5, -1])
+    #     u0 = [1.5, 0, 20]
+    #     myode = odes.hopf_bifurcation
+    #     u0 = numericalShooting.main_loop(myode, u0, args)
+    #
+    #     ana_hbf = lambda t: beta**0.5 * math.cos(t)
+    #     beta = args[0]
+    #     self.assertAlmostEqual(u0[0],fsolve(ana_hbf))
+
+
 
 if __name__ == '__main__':
     u0 = np.array([1, 0.5, 100]);

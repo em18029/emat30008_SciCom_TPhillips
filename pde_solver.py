@@ -254,14 +254,6 @@ class crankNicholson:
 
     def solve(self):
         a_vec = self.additive_vec()
-
-        # crankNicholson.tridiag_mat(self)
-        # ab = np.matmul(self.b, np.linalg.inv(self.a))
-        # for i in range(0, self.mt - 1):
-        #     u_j1 = np.matmul(self.u_j, ab)
-        #     u_j1[0], u_j1[self.mx] = 0, 0
-        #     self.u_j[:] = u_j1[:]
-
         self.tridiag_mat()
         print(self.a)
         print(self.b)
@@ -299,11 +291,9 @@ def q(t):
     return 3
 
 
-def main_loop(method, bound_cond):
+def solve_mypde(method, bound_cond,K,L,T):
     # Set problem parameters/functions
-    kappa = 1.0  # diffusion constant
-    L = 1.0  # length of spatial domain
-    T = 0.5  # total time to solve for
+
 
     # Set numerical parameters
     mx = 10  # number of gridpoints in space
@@ -313,7 +303,7 @@ def main_loop(method, bound_cond):
     t = np.linspace(0, T, mt + 1)  # mesh points in time
     deltax = x[1] - x[0]  # gridspacing in x
     deltat = t[1] - t[0]  # gridspacing in t
-    lmbda = kappa * deltat / (deltax ** 2)  # mesh fourier number
+    lmbda = K * deltat / (deltax ** 2)  # mesh fourier number
     print("deltax=", deltax)
     print("deltat=", deltat)
     print("lambda=", lmbda)
@@ -334,7 +324,7 @@ def main_loop(method, bound_cond):
 
 if __name__ == '__main__':
     solver = crankNicholson
-    main_loop(solver, 'homogenous')
-    main_loop(solver, 'dirichlet')
-    main_loop(solver, 'neumann')
-    main_loop(solver, 'periodic')
+    solve_mypde(solver, 'homogenous')
+    solve_mypde(solver, 'dirichlet')
+    solve_mypde(solver, 'neumann')
+    solve_mypde(solver, 'periodic')

@@ -5,7 +5,8 @@ from scipy.signal import argrelextrema
 from scipy.signal import find_peaks
 from scipy.integrate import solve_ivp
 from scipy.optimize import fsolve
-from odes import odes
+from odes import pred_prey, hopf_bifurcation
+from ode_solver import solve_myode,RK4
 
 '''
 Add plotting one limit cycle and other full data from odes
@@ -28,7 +29,7 @@ class numericalShooting:
 
     def gen_data(self, args):
         '''
-        A function that solves a specified ODE using fsolve and returns the relevant ODE data and time points.
+        A function that solves a specified ODE using solve_ivp and returns the relevant ODE data and time points.
 
         Parameters
         ----------
@@ -45,7 +46,7 @@ class numericalShooting:
         ode_data = solve_ivp(self.ode, t_data, x0, max_step=self.max_step, args=args)
         self.ode_data = np.transpose(ode_data.y)
         self.t_data = np.transpose(ode_data.t)
-        return self.ode_data,self.t_data
+        return self.ode_data, self.t_data
 
     def isolate_orbit(self):
         '''
@@ -58,7 +59,6 @@ class numericalShooting:
         self.x_data, self.y_data = self.ode_data[:, 0], self.ode_data[:, -1]
         prev_val = False
         prev_t = 0
-        #extrema = argrelextrema(self.x_data, np.greater)[0]
         extrema = find_peaks(self.x_data)[0]
         for i in extrema:
             if prev_val:
@@ -68,7 +68,7 @@ class numericalShooting:
                 return self.u0
             prev_val = self.x_data[i]
             prev_t = self.t_data[i]
-        raise RuntimeError("No orbit found")
+        #raise RuntimeError("No orbit found")
 
     def shooting_conditions(self, u0, ode, args):
         '''
@@ -87,13 +87,15 @@ class numericalShooting:
         A function that uses numerical shooting to find limit cycles of a specified ODE.
 
         Parameters
-        ode : function
+        ----------
+        ode  function
             The ODE to apply shooting to. The ode function should take arguments for the independent variable, dependant
             variable and constants, and return the right-hand side of the ODE as a numpy.array.
-        u0 : numpy.array
+        u0  numpy.array
             An initial guess at the initial values for the limit cycle.
 
         Returns
+        -------
         Returns a numpy.array containing the corrected initial values
         for the limit cycle. If the numerical root finder failed, the
         returned array is empty.
@@ -122,7 +124,7 @@ class numericalShooting:
         plt.ylabel('x')
         plt.subplot(1, 2, 2)
         self.u0 = self.final
-        print('u0', self.u0)
+        # print('u0', self.u0)
         nS.gen_data(args)
         plt.plot(self.t_data, self.ode_data[:, 0], 'r-', label='a')
         plt.plot(self.t_data, self.ode_data[:, 1], 'b-', label='b')
@@ -136,19 +138,23 @@ class numericalShooting:
 
 
 if __name__ == '__main__':
-    # '''
-    # Predator Prey equations init conditions
-    # '''
+    '''
+    Predator Prey equations init conditions
+    '''
     # args = np.array([1, 0.25, 0.1])
     # u0 = [5, 10, 200]
-    # myode = odes.pred_prey
+    # myode = pred_prey
     #
     '''
     Hof-Bifurcation equtions
     '''
-    args = np.array([0.1, -1])
-    u0 = [1.5, 0, 20]
-    myode = odes.hopf_bifurcation
+    # args = np.array([0, -1])
+    # u0 = [0.5, 0.5, 20]
+    # myode = hopf_bifurcation
+
+    args = np.array([0,-1])
+    u0 = [3.16227766e-01, 1.82691380e-11, 6.28318531e+00]
+    myode = hopf_bifurcation
 
     nS = numericalShooting(myode, u0, args)
     nS.gen_data(args)
@@ -157,3 +163,7 @@ if __name__ == '__main__':
     print('Initial limit conditions', nS.shooting())
 
     nS.plot_sols(args)
+
+
+
+

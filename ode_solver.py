@@ -2,7 +2,8 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-from odes import odes
+from odes import ode_second_order,ode_first_order,exact_second_order, exp
+
 
 
 def euler_step(tn, xn, step_size, myode, args):
@@ -143,15 +144,12 @@ def plot_error(t_vals, x0, myode, exact_vals, args):
     t_steps = np.logspace(-6, 0, 10)  # logarithmic scale for time
     eul_err = np.zeros(len(t_steps))
     RK4_err = np.zeros(len(t_steps))
-    error_match = 1e-5
-    eul_t = 0
-    RK4_t = 0
     for i in range(len(t_steps)):
         eul_pred = solve_myode(t_vals, x0, t_steps[i], euler_step, myode, args)
         RK4_pred = solve_myode(t_vals, x0, t_steps[i], RK4, myode, args)
 
         eul_err[i] = abs(eul_pred[-1] - x_val)
-        RK4_err[i] = abs(RK4_err[-1] - x_val)
+        RK4_err[i] = abs(RK4_pred[-1] - x_val)
 
     plt.loglog(t_steps, eul_err, label='Euler')
     plt.loglog(t_steps, RK4_err, label='RK4')
@@ -178,7 +176,7 @@ def plot_error(t_vals, x0, myode, exact_vals, args):
 if __name__ == "__main__":
     t_vals = [0, 1]
     args = []
-    eul_err, RK4_err = plot_error(t_vals,1,odes.ode_second_order,odes.exact_second_order, args)
+    eul_err, RK4_err = plot_error(t_vals,1,ode_first_order,exp, args)
     t_vals = np.linspace(t_vals[0], t_vals[1], 20)
     x_vals = np.array([3, 4])
-    #plot_dot_x(x_vals, t_vals, 0.1, odes.ode_second_order, odes.exact_second_order, args)
+    #plot_dot_x(x_vals, t_vals, 0.1, ode_second_order, exact_second_order, args)
