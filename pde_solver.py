@@ -26,7 +26,6 @@ class forwardEuler:
     solution_matrix: numpy.array
         A matrix for which the solver iteraitvly appends solutions at each timestep.
 
-
     Returns
     -------
     solution_matrix: numpy.array
@@ -46,6 +45,7 @@ class forwardEuler:
     def additive_vec(self):
         '''
         A function which returns the size an additive vector given the boundary conditions given.
+        Returns: additive vector
         '''
         if self.bound_cond == 'dirichlet':
             return np.zeros(self.mx - 1)
@@ -56,7 +56,7 @@ class forwardEuler:
 
     def tridiag_mat(self):
         '''
-        A function returns a tridiagonal matrix using the numpy.eye(), its dimensions and other qualities are
+        A function which returns a tridiagonal matrix using the numpy.eye(), its dimensions and other qualities are
         determined by the boundary conditions given.
         '''
         # A function generating a tridiagonal (m-1) x (m-1) matrix
@@ -139,6 +139,33 @@ class forwardEuler:
 
 class backwardEuler:
     def __init__(self, u_j, mx, lmbda, mt, p_func, q_func, bound_cond, deltax):
+        """
+         A class which performs the backward Euler method in matrix form.
+
+          Parameters
+         ----------
+         u_j: 	numpy.array
+             The solutions at t=1 of an PDE.
+         mx: int
+             An integer value for number of gridpoints in space.
+         lmbda:	int
+             The calculated mech fourier number.
+         mt:	int
+             An integer value for number of gridpoints in time.
+         p_func:	function
+             A function containing a float for the additive vector.
+         q_func:	function
+             A function containing a float for the additive vector.
+         bound_cond:	string
+             A string which determines what boundary conditions the solver will incorperate.
+         solution_matrix: numpy.array
+             A matrix for which the solver iteraitvly appends solutions at each timestep.
+
+         Returns
+         -------
+         solution_matrix: numpy.array
+             Array of solutions converging upon a steady state.
+         """
         self.u_j = u_j
         self.mx = mx
         self.lmbda = lmbda
@@ -150,6 +177,11 @@ class backwardEuler:
         self.deltax = deltax
 
     def additive_vec(self):
+        '''
+        A function which returns the size an additive vector given the boundary conditions given.
+        Returns: np.array
+            Additive vector
+        '''
         if self.bound_cond == 'dirichlet':
             return np.zeros(self.mx - 1)
         elif self.bound_cond == 'neumann':
@@ -158,7 +190,10 @@ class backwardEuler:
             return None
 
     def tridiag_mat(self):
-        # A function generating a tridiagonal (m-1) x (m-1) matrix
+        '''
+        A function which returns a tridiagonal matrix using the numpy.eye(), its dimensions and other qualities are
+        determined by the boundary conditions given.
+        '''
         if self.bound_cond == 'dirichlet':
             dims = self.mx - 1
             return np.eye(dims, dims, k=-1) * -self.lmbda + np.eye(dims, dims) * \
@@ -181,6 +216,9 @@ class backwardEuler:
                    (1 + 2 * self.lmbda) + np.eye(dims, dims, k=1) * -self.lmbda
 
     def gen_solution_mat(self):
+        '''
+        A function which returns a solution matrix of the right size method to be....
+        '''
         if self.bound_cond == 'periodic':
             sol_mat = np.zeros((self.mt, self.mx))
             sol_mat[0] = self.u_j[:-1]
@@ -191,13 +229,12 @@ class backwardEuler:
             return sol_mat
 
     def solve(self):
-        # for i in range(1, self.mt - 1):
-        #     u_j1 = np.matmul(self.u_j, np.linalg.inv(self.tridiag_mat()))
-        #     u_j1[0], u_j1[self.mx] = 0, 0
-        #     self.u_j[:] = u_j1[:]
-
+        '''
+        A function which utilises the forward euler method in matrix to solve a given pde.
+        returns: np.array()
+            matrix of solutions of dimensions (mx,mt)
+        '''
         a_vec = self.additive_vec()
-
         for i in range(0, self.mt - 1):
             if self.bound_cond == 'dirichlet':
                 a_vec[0], a_vec[-1] = self.p_func(i), self.q_func(i)
@@ -230,6 +267,33 @@ class backwardEuler:
 
 class crankNicholson:
     def __init__(self, u_j, mx, lmbda, mt, p_func, q_func, bound_cond, deltax):
+        """
+         A class which performs the Crank Nicholson method in matrix form.
+
+          Parameters
+         ----------
+         u_j: 	numpy.array
+             The solutions at t=1 of an PDE.
+         mx: int
+             An integer value for number of gridpoints in space.
+         lmbda:	int
+             The calculated mech fourier number.
+         mt:	int
+             An integer value for number of gridpoints in time.
+         p_func:	function
+             A function containing a float for the additive vector.
+         q_func:	function
+             A function containing a float for the additive vector.
+         bound_cond:	string
+             A string which determines what boundary conditions the solver will incorperate.
+         solution_matrix: numpy.array
+             A matrix for which the solver iteraitvly appends solutions at each timestep.
+
+         Returns
+         -------
+         solution_matrix: numpy.array
+             Array of solutions converging upon a steady state.
+         """
         self.u_j = u_j
         self.mx = mx
         self.lmbda = lmbda
@@ -243,6 +307,11 @@ class crankNicholson:
         self.b = None
 
     def additive_vec(self):
+        '''
+        A function which returns the size an additive vector given the boundary conditions given.
+        Returns: np.array
+            Additive vector
+        '''
         if self.bound_cond == 'dirichlet':
             return np.zeros(self.mx - 1)
         elif self.bound_cond == 'neumann':
@@ -251,7 +320,10 @@ class crankNicholson:
             return None
 
     def tridiag_mat(self):
-        # A function generating a tridiagonal (m-1) x (m-1) matrix
+        '''
+        A function which returns a tridiagonal matrix using the numpy.eye(), its dimensions and other qualities are
+        determined by the boundary conditions given.
+        '''
         if self.bound_cond == 'dirichlet':
             dims = self.mx - 1
             self.a = np.eye(dims, dims, k=-1) * -self.lmbda * 0.5 + np.eye(dims, dims) * \
@@ -286,6 +358,9 @@ class crankNicholson:
                      (1 - self.lmbda) + np.eye(dims, dims, k=1) * self.lmbda * 0.5
 
     def gen_solution_mat(self):
+        '''
+        A function which returns a solution matrix of the right size method to be....
+        '''
         if self.bound_cond == 'periodic':
             sol_mat = np.zeros((self.mt, self.mx))
             sol_mat[0] = self.u_j[:-1]
@@ -296,6 +371,11 @@ class crankNicholson:
             return sol_mat
 
     def solve(self):
+        '''
+        A function which utilises the forward euler method in matrix to solve a given pde.
+        returns: np.array()
+            matrix of solutions of dimensions (mx,mt)
+        '''
         a_vec = self.additive_vec()
         self.tridiag_mat()
         print(self.a)

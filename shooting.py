@@ -1,7 +1,6 @@
 import numpy as np
 import math
 import matplotlib.pyplot as plt
-from scipy.signal import argrelextrema
 from scipy.signal import find_peaks
 from scipy.integrate import solve_ivp
 from scipy.optimize import fsolve
@@ -89,7 +88,7 @@ class numericalShooting:
 
     def shooting_conditions(self, u0, ode, args):
         '''
-        A function which utilises scipy's solve_ivp to find the starting
+        A function which utilises scipy's solve_ivp to find the best guess for solve_ivp
         '''
         x0 = u0[:-1]
         t0 = u0[-1]

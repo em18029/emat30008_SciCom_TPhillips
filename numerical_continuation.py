@@ -10,6 +10,27 @@ from pde_solver import solve_mypde
 
 
 def natural_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
+    """
+        A function which performs natural parameter continuatin of a set of ODEs
+
+        Parameters
+        ----------
+        p  A list of min and max varying parameter values
+        par  The parameters of the odes
+        vary_par  The index of the parameter to be varied
+        myode  An arbitart system of odes to be solved
+        step_size  The step size for the varying parameter to be updated by
+        u0  Initial condidions
+        limit_cycle  a boolean, true or false
+
+        Returns
+        -------
+        sol numpy.array
+            a list of soltions calcualted from either numerical shooting for fsolve
+        vary_par_h numpy.array
+            a list of all previous varied parameter values
+        """
+
     n = 0
     vary_par_h = []
     sol = []
@@ -30,13 +51,49 @@ def natural_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
 
 
 def calc_pseudo(state_sec, par_sec, pred_state, pred_par, u, p):
+    """
+        A function which calcualtes the next parameter value.
+
+        Parameters
+        ----------
+        state_sec  u0 secant
+        par_sec  parameter secant
+        pred_state  predicted next state
+        pred_par  predicted parameter value
+        u  the current state
+        p  the current parameter value
+
+        Returns
+        -------
+        pseudo  float
+            next parameter value
+        """
     return np.dot(u - pred_state, state_sec) + np.dot(p - pred_par, par_sec)
 
 
 def pseudo_conds(myode, u0, state_sec, par_sec, pred_state, pred_par, limit_cycle, args):
+    """
+        A function which outputs time points and values of solution at t
+
+        Parameters
+        ----------
+        myode  An arbitart system of odes to be solved
+        u0  Initial condidions
+        state_sec  u0 secant
+        par_sec  parameter secant
+        pred_state  predicted next state
+        pred_par  predicted parameter value
+        limit_cycle  a boolean, true or false
+        args  The parameters of the odes
+
+        Returns
+        -------
+        g_conds numpy.array
+            a list of solutions in a single state calcualted from solveivp
+        """
     if limit_cycle:
         pseudo = calc_pseudo(state_sec, par_sec, pred_state, pred_par, u0[:-1], u0[-1])
-        sol = solve_ivp(myode, (0, u0[-2]), u0[:-2], max_step=1e-2, args=args)
+        sol = solve_ivp(myode, (0, u0[-2]), u0[:-2], max_step=1e-3, args=args)
         x_conds = u0[:-2] - sol.y[:, -1]
         t_conds = np.asarray(myode(u0[-2], u0[:-2], *args)[0])
         g_conds = np.concatenate((x_conds, t_conds, pseudo), axis=None)
@@ -48,6 +105,24 @@ def pseudo_conds(myode, u0, state_sec, par_sec, pred_state, pred_par, limit_cycl
 
 
 def pseudo_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
+    """
+        A function which performs pseudo arclength continuation
+
+        Parameters
+        ----------
+        p  A list of min and max varying parameter values
+        par  The parameters of the odes
+        vary_par  The index of the parameter to be varied
+        myode  An arbitart system of odes to be solved
+        step_size  The step size for the varying parameter to be updated by
+        u0  Initial condidions
+        limit_cycle  a boolean, true or false
+
+        Returns
+        -------
+        sol numpy.array
+            a list of solutions and varied parameter values
+        """
     # p: start finish vals
     # par: initial vals
     # vary_par: par vary index
@@ -90,9 +165,6 @@ def pseudo_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
         p1 = par1[vary_par]
         p0 = par0[vary_par]
 
-        print(p0)
-        print(p1)
-        print()
 
         sol = np.vstack((sol, A))
 
@@ -129,6 +201,7 @@ def pseudo_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
         par[vary_par] = p1
         if sol[-1,-1]> p[1] or sol[-1,-1]<p[0]:
             sol = sol[:-1, :]
+        print(u1)
         print(p1)
     return sol
 
