@@ -93,7 +93,7 @@ def pseudo_conds(myode, u0, state_sec, par_sec, pred_state, pred_par, limit_cycl
         """
     if limit_cycle:
         pseudo = calc_pseudo(state_sec, par_sec, pred_state, pred_par, u0[:-1], u0[-1])
-        sol = solve_ivp(myode, (0, u0[-2]), u0[:-2], max_step=1e-3, args=args)
+        sol = solve_ivp(myode, (0, u0[-2]), u0[:-2], max_step=1e-2, args=args)
         x_conds = u0[:-2] - sol.y[:, -1]
         t_conds = np.asarray(myode(u0[-2], u0[:-2], *args)[0])
         g_conds = np.concatenate((x_conds, t_conds, pseudo), axis=None)
@@ -127,8 +127,8 @@ def pseudo_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
     # par: initial vals
     # vary_par: par vary index
     n = 0
-    if p[1]<p[0]:
-       step_size = -step_size
+    if p[1] < p[0]:
+        step_size = -step_size
 
     if limit_cycle:
         # Calc u0,par0
@@ -144,7 +144,7 @@ def pseudo_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
         A = np.append(u1, par1[vary_par])
 
         # Solution array generating
-        sol = np.vstack((sol, A))
+        sol = np.vstack((np.array(sol), np.array(A)))
 
         # calculate secants
         # -----------------------
@@ -165,7 +165,6 @@ def pseudo_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
         p1 = par1[vary_par]
         p0 = par0[vary_par]
 
-
         sol = np.vstack((sol, A))
 
     state_sec = np.array(u1) - np.array(u0)
@@ -176,33 +175,34 @@ def pseudo_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
     pred_par = p1 + par_sec
     par[vary_par] = p1
 
-    if p[1]>p[0]:
+    if p[1] > p[0]:
         conditions = p[1] > par[vary_par] > p[0]
     else:
         conditions = p[1] < par[vary_par] < p[0]
 
     while conditions:
-        p0, u0  = p1, list(u1)  # Setting up for next time step
-        print('Pre f')
+        p0, u0 = p1, list(u1)  # Setting up for next time step
         input = np.append(u1, par)
-        A = fsolve(lambda x: pseudo_conds(myode, x, state_sec, par_sec, pred_state, pred_par, limit_cycle, args=par), input)
-        print('Post f')
-
+        A = np.array(fsolve(lambda x: pseudo_conds(myode, x, state_sec, par_sec, pred_state, pred_par, limit_cycle, args=par),
+                   input))
 
         sol = np.vstack((sol, A))
-        u1, p1 = list(A[:-1]), A[-1]
+        u1, p1 = A[:-1], A[-1]
         # Calculating secants
-        state_sec = np.array(u1 )- np.array(u0)
+        state_sec = np.array(u1) - np.array(u0)
         par_sec = p1 - p0
 
         # Predicting states
         pred_state = u1 + state_sec
         pred_par = p1 + par_sec
         par[vary_par] = p1
-        if sol[-1,-1]> p[1] or sol[-1,-1]<p[0]:
-            sol = sol[:-1, :]
-        print(u1)
-        print(p1)
+        # if sol[-1, -1] > p[1] or sol[-1, -1] < p[0]:
+        #     sol = sol[:-1, :]
+
+        if p[1] > p[0]:
+            conditions = p[1] > par[vary_par] > p[0]
+        else:
+            conditions = p[1] < par[vary_par] < p[0]
     return sol
 
 
@@ -226,6 +226,13 @@ def plot_sols(sol, par_hist):
     plt.ylabel('x')
     plt.show()
 
+    plt.plot(par_hist, x_data, 'r-', label='x')
+    plt.plot(par_hist, y_data, 'b-', label='y')
+    plt.ylabel('x')
+    plt.xlabel('Varied Parameter')
+    plt.legend(loc='best')
+    plt.grid()
+    plt.show()
 
 
 def continuation(
@@ -237,16 +244,13 @@ def continuation(
         p,  # the initial and final value
         discretisation,  # the discretisation to use
         solver,  # the solver to use
-        tol,  # tolerance for difference between converging parameters
-        limit_cycle,
+        limit_cycle,  # a boolean
         method,  # method for solving ODE can be either euler, RK4, forwardEuler, backwardEuler, crankNicholson
-        bound_cond, #PDE boundary condition
+        bound_cond,  # PDE boundary condition
         K,  # diffusion constant
         L,  # length of spatial domain
         T  # total time to solve for
-        ):
-
-
+):
     if discretisation == "natural continuation":
         print('Please be patient, it is running!')
         sol, par_hist = natural_continuation(p, par0, vary_par, myode, step_size, u0, limit_cycle)
@@ -261,12 +265,12 @@ def continuation(
     elif discretisation == 'pseudo arclength':
         print('Please be patient, it is running!')
         sol = np.array(pseudo_continuation(p, par0, vary_par, myode, step_size, u0, limit_cycle))
-        #print(sol)
+        # print(sol)
         if len(sol[0, :-1]) > 2:
             plot_sols(sol[:, :-1], sol[:, -1])
         else:
-            plt.plot(sol[:,1],sol[:,0])
-           # plt.show()
+            plt.plot(sol[:, 1], sol[:, 0])
+        # plt.show()
         return sol
 
     elif discretisation == 'pde solver':
@@ -285,30 +289,30 @@ def continuation(
         u_values = np.asarray(solve_myode(times, u0, step_size, method, myode, par0))
         return u_values
     else:
-        raise RuntimeError("Invalid choice of discretisation, please choose from either: ode solver, shooting, pde solver, natural continuation or pseudo arclength")
-
+        raise RuntimeError(
+            "Invalid choice of discretisation, please choose from either: ode solver, shooting, pde solver, natural continuation or pseudo arclength")
 
     return
 
-if __name__ == "__main__":
 
-    sol =  continuation(
+if __name__ == "__main__":
+    sol = continuation(
         myode=hopf_bifurcation,  # the ODE to use
-        u0=[1, 1, 20],  # the initial state
+        u0=[1,-0.00276,6.29],  # the initial state
         par0=[2],  # the initial parameters (args)
         vary_par=0,  # the parameter to vary
         step_size=0.1,  # the size of the steps to take
-        p=[2, 0],  # the start and final value of p
+        p=[2,0],  # the start and final value of p
         discretisation="pseudo arclength",  # the discretisation to use
         solver=True,  # the solver to use
-        tol=1e-6,
-        limit_cycle=True,
-        method=None,
-        bound_cond = None,
-        K= None,
-        L = None,
-        T=None
+        limit_cycle=True,  # a boolean
+        method=None,   # method for solving ODE can be either euler, RK4, forwardEuler, backwardEuler, crankNicholson
+        bound_cond=None,  # PDE boundary condition
+        K=None,   # diffusion constant
+        L=None,  # length of spatial domain
+        T=None   # total time to solve for
     )
+
 
     '''
     sol_nat,par_hist = continuation(
@@ -328,39 +332,6 @@ if __name__ == "__main__":
         L = None,
         T=None
     )
-
-
-    sol = continuation(
-        myode=alg_cubic,  # the ODE to use
-        u0=[1],  # the initial state
-        par0=[-2],  # the initial parameters (args)
-        vary_par=0,  # the parameter to vary
-        step_size=0.1,  # the size of the steps to take
-        p=[-2, 2],  # the start and final value of p
-        discretisation="pseudo arclength",  # the discretisation to use
-        solver=True,  # the solver to use
-        tol=1e-6,
-        limit_cycle=False,
-        method=None,
-        bound_cond = None,
-        K= None,
-        L = None,
-        T=None
-    )
     '''
-    plt.subplot(1, 2, 1)
-    plt.plot(sol[:,-1],sol[:,0] , 'r-', label='cubic')
-    plt.grid()
-    plt.legend(loc='best')
-    plt.xlabel('Varied Parameter')
-    plt.ylabel('x')
-    plt.title('Natural Continuation')
-    plt.subplot(1, 2, 2)
-    print(sol)
-    plt.plot(sol[:,1], sol[:,1], 'b-', label='cubic')
-    plt.grid()
-    plt.legend(loc='best')
-    plt.title('Pseudo Arclength')
-    plt.xlabel('Varied Parameter')
-    plt.ylabel('x')
-    plt.show()
+
+
