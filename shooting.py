@@ -78,7 +78,7 @@ class numericalShooting:
         self.extrema = find_peaks(self.x_data)[0]
         for i in self.extrema:
             if prev_val:
-                if math.isclose(self.x_data[i], prev_val, rel_tol=1):
+                if math.isclose(self.x_data[i], prev_val, abs_tol=0.5):
                     period = self.t_data[i] - prev_t
                     self.u0 = [self.x_data[i], self.y_data[i], period]
                 return self.u0
