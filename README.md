@@ -13,10 +13,15 @@ All functions that are used to solve an ODE are found in ode_solver.py, this scr
 The shooting method can be found in shooting.py, it contains two main processes, finding limit cycles and implementing numerical shooting
 
 ### Numerical Continuation
-The numerical continuation code contains two main processes for ODEs with and without limit cycles: natural parameter continuation and pseudo arc length continuation. 
+The numerical continuation code contains two main processes for ODEs with and without limit cycles: natural parameter continuation and pseudo arc length continuation.
+Here the main interface for the software is described
 
 ### PDE Solver 
 The PDE solver, found in the pde_solver.py file. It utilises three methods: 1. Forward Euler. 2. Backward Euler. 3. Crank-Nicholson Where each of these methods are seperate classes defined as forwardEuler, backwardEuler and crankNicholson.
 
 ### Shooting testing 
 Found in shooting_test.py
+
+
+### How to run
+Please look at numerical_continuation.py to view the interface. Running this script with user inputted arguments
