@@ -4,6 +4,34 @@ from math import pi
 
 
 class forwardEuler:
+    """
+    A class which performs the forwardEuler method in matrix form.
+
+     Parameters
+    ----------
+    u_j: 	numpy.array
+        The solutions at t=1 of an PDE.
+    mx: int
+        An integer value for number of gridpoints in space.
+    lmbda:	int
+        The calculated mech fourier number.
+    mt:	int
+        An integer value for number of gridpoints in time.
+    p_func:	function
+        A function containing a float for the additive vector.
+    q_func:	function
+        A function containing a float for the additive vector.
+    bound_cond:	string
+        A string which determines what boundary conditions the solver will incorperate.
+    solution_matrix: numpy.array
+        A matrix for which the solver iteraitvly appends solutions at each timestep.
+
+
+    Returns
+    -------
+    solution_matrix: numpy.array
+        Array of solutions converging upon a steady state.
+    """
     def __init__(self, u_j, mx, lmbda, mt, p_func, q_func, bound_cond, deltax):
         self.u_j = u_j
         self.mx = mx
@@ -16,6 +44,9 @@ class forwardEuler:
         self.deltax = deltax
 
     def additive_vec(self):
+        '''
+        A function which returns the size an additive vector given the boundary conditions given.
+        '''
         if self.bound_cond == 'dirichlet':
             return np.zeros(self.mx - 1)
         elif self.bound_cond == 'neumann':
@@ -24,6 +55,10 @@ class forwardEuler:
             return None
 
     def tridiag_mat(self):
+        '''
+        A function returns a tridiagonal matrix using the numpy.eye(), its dimensions and other qualities are
+        determined by the boundary conditions given.
+        '''
         # A function generating a tridiagonal (m-1) x (m-1) matrix
         if self.bound_cond == 'dirichlet':
             dims = self.mx - 1
@@ -47,6 +82,9 @@ class forwardEuler:
                    (1 - 2 * self.lmbda) + np.eye(dims, dims, k=1) * self.lmbda
 
     def gen_solution_mat(self):
+        '''
+        A function which returns a solution matrix of the right size method to be....
+        '''
         if self.bound_cond == 'periodic':
             sol_mat = np.zeros((self.mt, self.mx))
             sol_mat[0] = self.u_j[:-1]
@@ -57,8 +95,13 @@ class forwardEuler:
             return sol_mat
 
     def solve(self):
+        '''
+        A function which utilises the forward euler method in matrix to solve a given pde.
+        returns: np.array()
+            matrix of solutions of dimensions (mx,mt)
+        '''
         # Check whether forward_euler method is suitable
-        if not 0 < self.lmbda < 0.5 :
+        if 0 < self.lmbda < 0.5 :
             raise RuntimeError("Invalid value for lmbda")
 
         a_vec = self.additive_vec()
@@ -291,7 +334,7 @@ def q(t):
     return 3
 
 
-def solve_mypde(method, bound_cond,K,L,T):
+def solve_mypde(method, bound_cond,K,L,T,title):
     # Set problem parameters/functions
 
 
@@ -314,17 +357,31 @@ def solve_mypde(method, bound_cond,K,L,T):
     solver = method(u_j, mx, lmbda, mt, p, q, bound_cond, deltax)
     solver.solve()
 
-    pl.plot(solver.solution_matrix[-1, :], 'ro', label='num')
+    def u_exact(x, t):
+        # the exact solution
+        y = np.exp(-K * (pi ** 2 / L ** 2) * t) * np.sin(pi * x / L)
+        return y
+
+    pl.plot(x,solver.solution_matrix[-1, :], 'ro', label='num')
+    xx = np.linspace(0, L, 250)
+    pl.plot(xx, u_exact(xx, T), 'b-', label='exact')
+    pl.title(title)
     pl.xlabel('x')
     pl.ylabel('u(x,0.5)')
     pl.legend(loc='upper right')
+    pl.grid()
     pl.show()
+
+
+
     return
 
 
 if __name__ == '__main__':
     solver = crankNicholson
-    solve_mypde(solver, 'homogenous')
-    solve_mypde(solver, 'dirichlet')
-    solve_mypde(solver, 'neumann')
-    solve_mypde(solver, 'periodic')
+    K, L, T = 5,1,0.5
+
+    solve_mypde(solver, 'homogenous',K,L,T,'Crank Nickolson')
+    solve_mypde(forwardEuler, 'homogenous', K, L, T,'Forward Euler')
+    solve_mypde(backwardEuler, 'homogenous', K, L, T,'Backward Euler')
+

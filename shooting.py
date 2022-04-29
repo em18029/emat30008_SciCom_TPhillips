@@ -16,6 +16,23 @@ try get isclsoe to work
 
 
 class numericalShooting:
+    '''
+    A class that applies a numerical shooting method to a system of ODEs.
+
+    Parameters
+    ----------
+    self: class variable
+    ode:  function
+        the n dimensional system of odes to be solved
+    ode_data:  numpy.array
+        data drawn from the solved ODEs
+    t_data:  numpy.array
+        corresponding time data to ode_data
+    u0:  numpy.array
+        initial guess of starting conditions
+    args:  list
+        parameters of the system of ODEs
+    '''
     def __init__(self, ode, u0, args):
         self.ode = ode
         self.ode_data = None
@@ -59,8 +76,8 @@ class numericalShooting:
         self.x_data, self.y_data = self.ode_data[:, 0], self.ode_data[:, -1]
         prev_val = False
         prev_t = 0
-        extrema = find_peaks(self.x_data)[0]
-        for i in extrema:
+        self.extrema = find_peaks(self.x_data)[0]
+        for i in self.extrema:
             if prev_val:
                 if math.isclose(self.x_data[i], prev_val, rel_tol=1):
                     period = self.t_data[i] - prev_t
@@ -105,6 +122,22 @@ class numericalShooting:
         return final
 
     def main_loop(ode, u0, args):
+        '''
+        A function that replaces if __name__ == '__main__', such that the numericalShooting class can be ran from
+        external script
+
+        Parameters
+        ----------
+        u0:  numpy.array
+            initial guess of starting conditions
+        args:  list
+            parameters of the system of ODEs
+
+        Returns
+        -------
+        Initial limit conditions for the system of ODEs containing, if the numerical shooting method failed then the
+        output willl be empty.
+        '''
         nS = numericalShooting(ode, u0, args)
         nS.gen_data(args)
         nS.isolate_orbit()
@@ -116,9 +149,10 @@ class numericalShooting:
 
     def plot_sols(self, args):
         plt.subplot(1, 2, 1)
-        plt.plot(self.t_data, self.x_data, 'r-', label='a')
-        plt.plot(self.t_data, self.y_data, 'b-', label='b')
+        plt.plot(self.t_data, self.x_data, 'r-', label='x')
+        plt.plot(self.t_data, self.y_data, 'b-', label='y')
         plt.grid()
+        plt.title('hopf-Bifurcation solutions')
         plt.legend(loc='best')
         plt.xlabel('t')
         plt.ylabel('x')
@@ -126,8 +160,9 @@ class numericalShooting:
         self.u0 = self.final
         # print('u0', self.u0)
         nS.gen_data(args)
-        plt.plot(self.t_data, self.ode_data[:, 0], 'r-', label='a')
-        plt.plot(self.t_data, self.ode_data[:, 1], 'b-', label='b')
+        plt.title('One limit Cylce of hopf-Bifurcation')
+        plt.plot(self.t_data, self.ode_data[:, 0], 'r-', label='x')
+        plt.plot(self.t_data, self.ode_data[:, 1], 'b-', label='y')
         plt.plot([0, self.final[-1]], [self.final[0], self.final[0]], 'ro')
         plt.plot([0, self.final[-1]], [self.final[1], self.final[1]], 'bo')
         plt.grid()
@@ -146,15 +181,15 @@ if __name__ == '__main__':
     # myode = pred_prey
     #
     '''
-    Hof-Bifurcation equtions
+    hopf-Bifurcation equtions
     '''
-    # args = np.array([0, -1])
-    # u0 = [0.5, 0.5, 20]
-    # myode = hopf_bifurcation
-
-    args = np.array([0,-1])
-    u0 = [3.16227766e-01, 1.82691380e-11, 6.28318531e+00]
+    args = np.array([0])
+    u0 = [0.5, 0.5, 40]
     myode = hopf_bifurcation
+
+    # args = np.array([0])
+    # u0 = [3.16227766e-01, 1.82691380e-11, 6.28318531e+00]
+    # myode = hopf_bifurcation
 
     nS = numericalShooting(myode, u0, args)
     nS.gen_data(args)

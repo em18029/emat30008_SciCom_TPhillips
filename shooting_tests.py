@@ -1,7 +1,8 @@
 import unittest
 import numpy as np
 from shooting import numericalShooting
-from odes import odes
+from odes import pred_prey
+from scipy.integrate import solve_ivp
 import math
 
 
@@ -23,31 +24,43 @@ class MyTestCase(unittest.TestCase):
     def test_extrema(self):
         self.assertIsNotNone(nS.extrema, 'Extrema of odes found')
 
-    def test_periods_close(self):
-        self.assertAlmostEqual(nS.find_period(nS.ode_data[:, 0]), nS.find_period(nS.ode_data[:, 0]))
+    # def test_periods_close(self):
+    #     self.assertAlmostEqual(nS.find_period(nS.ode_data[:, 0]), nS.find_period(nS.ode_data[:, 0]))
 
     def test_shooting_conditions(self):
-        self.assertIsNotNone(final,'Shooting conditions outputted')
+        self.assertIsNotNone(final, 'Shooting conditions outputted')
 
-    # def test_hbf_annalytical(self):
-    #     '''
-    #         Hof-Bifurcation equtions
-    #         '''
-    #     args = np.array([0.5, -1])
-    #     u0 = [1.5, 0, 20]
-    #     myode = odes.hopf_bifurcation
-    #     u0 = numericalShooting.main_loop(myode, u0, args)
-    #
-    #     ana_hbf = lambda t: beta**0.5 * math.cos(t)
-    #     beta = args[0]
-    #     self.assertAlmostEqual(u0[0],fsolve(ana_hbf))
+    def test_hopf_bi_sols(self):
+        from odes import hopf_bifurcation_test as func
+        from odes import hopf_bifurcation_exact as exact_func
+        u0, args = [0.4 ** 0.5, 0, 30], [0.4, -1]
+
+        sol = solve_ivp(func, (0, u0[-1]), u0[:-1], args=args, max_step=1e-2)
+        t_conds = sol.t
+        x_conds = sol.y
+
+        exact_sol = [[] for i in range(len(x_conds))]
+        for t in t_conds:
+            sol = exact_func(t, *args)
+            for dim in range(len(x_conds)):
+                exact_sol[dim].append(sol[dim])
+
+        assert np.allclose(x_conds, np.array(exact_sol))
+
+
+    def test_hopf_bi_period(self):
+        from odes import hopf_bifurcation as func
+        t0_exact = 2 * np.pi
+        nS = numericalShooting(func,[0.4 ** 0.5, 0, 30],[0.4])
+
+        return np.allclose(t0_exact, nS.u0[-1])
 
 
 
 if __name__ == '__main__':
     u0 = np.array([1, 0.5, 100]);
     args = np.array([1, 0.2, 0.1]);
-    myode = odes.pred_prey
+    myode = pred_prey
     nS = numericalShooting(myode, u0, args)
     nS.gen_data(args)
     nS.isolate_orbit()

@@ -18,13 +18,10 @@ def natural_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
         par[vary_par] = par[vary_par] + step_size
         if limit_cycle:
             u0 = numericalShooting.main_loop(myode, u0, par)
-            sol = np.concatenate((sol, u0), axis=0)
-            vary_par_h.append(par[vary_par])
-
         else:
             u0 = fsolve(lambda x: myode(0, x, par[vary_par]), np.array(u0))
-            sol = np.concatenate((sol, u0), axis=0)
-            vary_par_h.append(par[vary_par])
+        sol = np.concatenate((sol, u0), axis=0)
+        vary_par_h.append(par[vary_par])
 
     if limit_cycle:
         return sol.reshape(n, len(u0)), vary_par_h
@@ -32,24 +29,21 @@ def natural_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
         return sol, vary_par_h
 
 
-def calc_secants(u0, p0, u1, p1):
-    state_sec = np.array(u1) - np.array(u0)
-    par_sec = p1 - p0
-    pred_state = u1 + state_sec
-    pred_par = p1 + par_sec
-    return state_sec, par_sec, pred_state, pred_par
-
-
 def calc_pseudo(state_sec, par_sec, pred_state, pred_par, u, p):
-    return np.dot((u - pred_state), state_sec) + np.dot((p - pred_par), par_sec)
+    return np.dot(u - pred_state, state_sec) + np.dot(p - pred_par, par_sec)
 
 
-def pseudo_conds(myode, u0, state_sec, par_sec, pred_state, pred_par, args):
-    pseudo = calc_pseudo(state_sec, par_sec, pred_state, pred_par, u0[:-1], u0[-1])
-    sol = solve_ivp(myode, (0, u0[-2]), u0[:-2], max_step=1e-2, args=args)
-    x_conds = u0[:-2] - sol.y[:, -1]
-    t_conds = np.asarray(myode(u0[-2], u0[:-2], *args)[0])
-    g_conds = np.concatenate((x_conds, t_conds, pseudo), axis=None)
+def pseudo_conds(myode, u0, state_sec, par_sec, pred_state, pred_par, limit_cycle, args):
+    if limit_cycle:
+        pseudo = calc_pseudo(state_sec, par_sec, pred_state, pred_par, u0[:-1], u0[-1])
+        sol = solve_ivp(myode, (0, u0[-2]), u0[:-2], max_step=1e-2, args=args)
+        x_conds = u0[:-2] - sol.y[:, -1]
+        t_conds = np.asarray(myode(u0[-2], u0[:-2], *args)[0])
+        g_conds = np.concatenate((x_conds, t_conds, pseudo), axis=None)
+    else:
+        x_conds = np.asarray(myode(0, u0[:-1], *args)[0])
+        pseudo = calc_pseudo(state_sec, par_sec, pred_state, pred_par, u0[:-1], u0[-1])
+        g_conds = np.concatenate((x_conds, pseudo), axis=None)
     return g_conds
 
 
@@ -58,6 +52,9 @@ def pseudo_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
     # par: initial vals
     # vary_par: par vary index
     n = 0
+    if p[1]<p[0]:
+       step_size = -step_size
+
     if limit_cycle:
         # Calc u0,par0
         par0 = list(par)
@@ -80,14 +77,24 @@ def pseudo_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
         p0 = par0[vary_par]
     else:
         par0 = list(par)
+        u = list(u0)
         par0[vary_par] += step_size
+        u0 = fsolve(lambda x: myode(0, x, par[vary_par]), np.array(u0))
+        sol = np.append(u0, par0[vary_par])
+
         par1 = list(par0)
         par1[vary_par] += step_size
+        u1 = fsolve(lambda x: myode(0, x, par[vary_par]), np.array(u))
+        A = np.append(u1, par1[vary_par])
+
         p1 = par1[vary_par]
         p0 = par0[vary_par]
 
-        # u0 =np.array(fsolve(lambda x: myode(0, x, p0), np.array([u0])))
-        # u1 = np.array(fsolve(lambda x: myode(0, x, p1), np.array([u0])))
+        print(p0)
+        print(p1)
+        print()
+
+        sol = np.vstack((sol, A))
 
     state_sec = np.array(u1) - np.array(u0)
     par_sec = p1 - p0
@@ -97,24 +104,32 @@ def pseudo_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
     pred_par = p1 + par_sec
     par[vary_par] = p1
 
-    while par[vary_par] < p[1] and p[0] < par[vary_par]:
-        input = np.append(u1, par)
-        A = fsolve(lambda x: pseudo_conds(myode, x, state_sec, par_sec, pred_state, pred_par, args=par), input)
+    if p[1]>p[0]:
+        conditions = p[1] > par[vary_par] > p[0]
+    else:
+        conditions = p[1] < par[vary_par] < p[0]
 
-        if A[-1:-1] > p[1]:
-            return sol
+    while conditions:
+        p0, u0  = p1, list(u1)  # Setting up for next time step
+        print('Pre f')
+        input = np.append(u1, par)
+        A = fsolve(lambda x: pseudo_conds(myode, x, state_sec, par_sec, pred_state, pred_par, limit_cycle, args=par), input)
+        print('Post f')
+
 
         sol = np.vstack((sol, A))
-        p0, u0, u1, p1 = p1, u1, A[:-1], A[-1]  # Setting up for next time step
-
+        u1, p1 = list(A[:-1]), A[-1]
         # Calculating secants
-        state_sec = np.array(u1) - np.array(u0)
+        state_sec = np.array(u1 )- np.array(u0)
         par_sec = p1 - p0
 
         # Predicting states
         pred_state = u1 + state_sec
         pred_par = p1 + par_sec
         par[vary_par] = p1
+        if sol[-1,-1]> p[1] or sol[-1,-1]<p[0]:
+            sol = sol[:-1, :]
+        print(p1)
     return sol
 
 
@@ -157,22 +172,31 @@ def continuation(
         L,  # length of spatial domain
         T  # total time to solve for
         ):
+
+
     if discretisation == "natural continuation":
         print('Please be patient, it is running!')
         sol, par_hist = natural_continuation(p, par0, vary_par, myode, step_size, u0, limit_cycle)
-        if len(sol[0, :]) > 2:
-            plot_sols(sol, par_hist)
-            print(sol)
-        return sol
+        print(sol)
+        return sol, par_hist
+        # if sol.size>1:
+        #     if len(sol[0, :]) > 2:
+        #         plot_sols(sol, par_hist)
+        #         print(sol)
+        #     return sol
+
     elif discretisation == 'pseudo arclength':
         print('Please be patient, it is running!')
         sol = np.array(pseudo_continuation(p, par0, vary_par, myode, step_size, u0, limit_cycle))
-        print(sol)
+        #print(sol)
         if len(sol[0, :-1]) > 2:
             plot_sols(sol[:, :-1], sol[:, -1])
+        else:
+            plt.plot(sol[:,1],sol[:,0])
+           # plt.show()
         return sol
+
     elif discretisation == 'pde solver':
-        #no need to
         if bound_cond is 'homogenous' or 'dirichlet' or 'neumann' or 'periodic':
             solve_mypde(method, bound_cond)
             return
@@ -193,21 +217,77 @@ def continuation(
 
     return
 
+if __name__ == "__main__":
 
-continuation(
-    myode=hopf_bifurcation,  # the ODE to use
-    u0=[1.5, 0, 40],  # the initial state
-    par0=[0],  # the initial parameters (args)
-    vary_par=0,  # the parameter to vary
-    step_size=0.1,  # the size of the steps to take
-    p=[0, 2],  # the start and final value of p
-    discretisation="pseudo arclength",  # the discretisation to use
-    solver=True,  # the solver to use
-    tol=1e-6,
-    limit_cycle=True,
-    method=None,
-    bound_cond = None,
-    K= None,
-    L = None,
-    T=None
-)
+    sol =  continuation(
+        myode=hopf_bifurcation,  # the ODE to use
+        u0=[1, 1, 20],  # the initial state
+        par0=[2],  # the initial parameters (args)
+        vary_par=0,  # the parameter to vary
+        step_size=0.1,  # the size of the steps to take
+        p=[2, 0],  # the start and final value of p
+        discretisation="pseudo arclength",  # the discretisation to use
+        solver=True,  # the solver to use
+        tol=1e-6,
+        limit_cycle=True,
+        method=None,
+        bound_cond = None,
+        K= None,
+        L = None,
+        T=None
+    )
+
+    '''
+    sol_nat,par_hist = continuation(
+        myode=alg_cubic,  # the ODE to use
+        u0=[1],  # the initial state
+        par0=[-2],  # the initial parameters (args)
+        vary_par=0,  # the parameter to vary
+        step_size=0.1,  # the size of the steps to take
+        p=[-2, 2],  # the start and final value of p
+        discretisation="natural continuation",  # the discretisation to use
+        solver=True,  # the solver to use
+        tol=1e-6,
+        limit_cycle=False,
+        method=None,
+        bound_cond = None,
+        K= None,
+        L = None,
+        T=None
+    )
+
+
+    sol = continuation(
+        myode=alg_cubic,  # the ODE to use
+        u0=[1],  # the initial state
+        par0=[-2],  # the initial parameters (args)
+        vary_par=0,  # the parameter to vary
+        step_size=0.1,  # the size of the steps to take
+        p=[-2, 2],  # the start and final value of p
+        discretisation="pseudo arclength",  # the discretisation to use
+        solver=True,  # the solver to use
+        tol=1e-6,
+        limit_cycle=False,
+        method=None,
+        bound_cond = None,
+        K= None,
+        L = None,
+        T=None
+    )
+    '''
+    plt.subplot(1, 2, 1)
+    plt.plot(sol[:,-1],sol[:,0] , 'r-', label='cubic')
+    plt.grid()
+    plt.legend(loc='best')
+    plt.xlabel('Varied Parameter')
+    plt.ylabel('x')
+    plt.title('Natural Continuation')
+    plt.subplot(1, 2, 2)
+    print(sol)
+    plt.plot(sol[:,1], sol[:,1], 'b-', label='cubic')
+    plt.grid()
+    plt.legend(loc='best')
+    plt.title('Pseudo Arclength')
+    plt.xlabel('Varied Parameter')
+    plt.ylabel('x')
+    plt.show()

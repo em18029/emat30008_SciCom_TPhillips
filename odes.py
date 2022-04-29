@@ -36,12 +36,25 @@ def hopf_bifurcation(t, vals, beta):
     x_array = np.array([beta * x - y + -x * (x ** 2 + y ** 2), x + beta * y + -y * (x ** 2 + y ** 2)])
     return x_array
 
-def hbf_analytical(vals):
-    t, beta = vals[-1],vals[1]
-    x_array = np.array([beta ** 0.5 * math.cos(t), beta ** 0.5 * math.sin(t)])
-    return x_array
+
+
+
+def hopf_bifurcation_test(t, vals, b, a):
+
+    x, y = vals[0], vals[1]
+    dx = b * x - y + a * x * (x * x + y * y)
+    dy = x + b * y + a * y * (x * x + y * y)
+    return np.array((dx, dy))
+
+
+def hopf_bifurcation_exact(t, beta, theta):
+    u1 = math.sqrt(beta) * math.cos(t + theta)
+    u2 = math.sqrt(beta) * math.sin(t + theta)
+    return np.array((u1, u2))
 
 def alg_cubic(t, x, c):
     return x**3 - x + c
+
+
 
 
