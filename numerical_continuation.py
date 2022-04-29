@@ -146,6 +146,7 @@ def pseudo_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
         # Solution array generating
         sol = np.vstack((np.array(sol), np.array(A)))
 
+
         # calculate secants
         # -----------------------
         p1 = par1[vary_par]
@@ -165,8 +166,7 @@ def pseudo_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
         p1 = par1[vary_par]
         p0 = par0[vary_par]
 
-        sol = np.vstack((sol, A))
-
+        sol = np.vstack((sol, np.array(A)))
     state_sec = np.array(u1) - np.array(u0)
     par_sec = p1 - p0
 
@@ -185,7 +185,6 @@ def pseudo_continuation(p, par, vary_par, myode, step_size, u0, limit_cycle):
         input = np.append(u1, par)
         A = np.array(fsolve(lambda x: pseudo_conds(myode, x, state_sec, par_sec, pred_state, pred_par, limit_cycle, args=par),
                    input))
-
         sol = np.vstack((sol, A))
         u1, p1 = A[:-1], A[-1]
         # Calculating secants
@@ -298,10 +297,10 @@ def continuation(
 if __name__ == "__main__":
     sol = continuation(
         myode=hopf_bifurcation,  # the ODE to use
-        u0=[1,-0.00276,6.29],  # the initial state
+        u0=[1.2,1.2,20],  # the initial state
         par0=[2],  # the initial parameters (args)
         vary_par=0,  # the parameter to vary
-        step_size=0.1,  # the size of the steps to take
+        step_size=0.05,  # the size of the steps to take
         p=[2,0],  # the start and final value of p
         discretisation="pseudo arclength",  # the discretisation to use
         solver=True,  # the solver to use
